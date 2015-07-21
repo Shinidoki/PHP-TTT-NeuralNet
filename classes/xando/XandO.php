@@ -81,16 +81,19 @@ class XandO
                 if($turnResult['winner'] != 'draw'){
                     $gameEnd = true;
                     //4 Points for winning
-                    $player->incrementFitness(9-$player->getMovesMade());
+//                    $player->incrementFitness(4);
+                    $player->incrementFitness(15-$player->getMovesMade());
                     if($echo) {
                         echo "Player " . $player->getSymbol() . " won!\n";
                     }
                 } else{
                     $gameEnd = true;
                     //2 Points for draw
-                    $player->incrementFitness(5-$player->getMovesMade());
+//                    $player->incrementFitness(2);
+                    $player->incrementFitness(8-$player->getMovesMade());
                     $this->switchPlayer();
-                    $this->players[$this->currentPlayer]->incrementFitness(1);
+                    $this->players[$this->currentPlayer]->incrementFitness(8-$this->players[$this->currentPlayer]->getMovesMade());
+//                    $this->players[$this->currentPlayer]->incrementFitness(2);
                     $this->switchPlayer();
                     $this->gameResult = array('winner' => 'draw');
                     if($echo){

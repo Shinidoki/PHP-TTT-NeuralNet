@@ -22,7 +22,7 @@ class Player
         }elseif($human) {
             $this->brain = 'human';
         }else {
-            $this->brain = new NeuralNet(9,9,NUM_HIDDEN_LAYERS,NEURONS_PER_LAYER);
+            $this->brain = new NeuralNet(9,1,NUM_HIDDEN_LAYERS,NEURONS_PER_LAYER);
         }
 
         $this->symbol = $symbol;
@@ -39,11 +39,16 @@ class Player
     {
         $this->movesMade++;
         if($this->brain == NULL){
-            return array(
-                mt_rand(0,2),
-                mt_rand(0,2)
+            //Generate all possible moves and choose a random one
+            $moves = $this->generatePossibleMoves($inputs);
+            $fieldKey = array_diff_assoc($moves[mt_rand(0,count($moves)-1)],$inputs);
+            $fieldKey = array_search(1,$fieldKey);
+            $output = array(
+                (int)($fieldKey/BOARD_SIZE),
+                $fieldKey%BOARD_SIZE
             );
         } elseif($this->brain == 'human'){
+            //This is the input for a human user
             do{
                 echo "\nPlease enter the row (0-2): ";
                 $row = trim(fgets(STDIN));
@@ -57,14 +62,19 @@ class Player
             );
 
         } else {
-            $output = $this->brain->update($inputs);
-            foreach($inputs as $key => $value) {
-                if ($value != 0 && isset($output[$key]) && count($output) > 1) {
-                    unset($output[$key]);
+            //Let the Neural net decide which one of the possible moves it thinks is the best
+            $moves = $this->generatePossibleMoves($inputs);
+            $bestMove = array('key' => 0, 'value' => 0);
+            foreach($moves as $key => $move){
+                $output = $this->brain->update($move);
+                if($output[0] > $bestMove['value']){
+                    $bestMove['key'] = $key;
+                    $bestMove['value'] = $output[0];
                 }
             }
-            $fieldKey = array_keys($output, max($output));
-            $fieldKey = $fieldKey[0];
+            $fieldKey = array_diff_assoc($moves[$bestMove['key']],$inputs);
+            $fieldKey = array_search(1,$fieldKey);
+
             $output = array(
                 (int)($fieldKey/BOARD_SIZE),
                 $fieldKey%BOARD_SIZE
@@ -76,6 +86,20 @@ class Player
         }
 
         return $output;
+    }
+
+    protected function generatePossibleMoves($currentBoard)
+    {
+        $possibilities = array();
+        $i = 0;
+        foreach($currentBoard as $key => $fieldVal){
+            if($fieldVal == 0){
+                $possibilities[$i] = $currentBoard;
+                $possibilities[$i][$key] = 1;
+                $i++;
+            }
+        }
+        return $possibilities;
     }
 
     public function getNumOfWeights()

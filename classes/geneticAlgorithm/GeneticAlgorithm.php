@@ -81,6 +81,10 @@ class GeneticAlgorithm
             }
         }
 
+        //If the Roullette failed give at least some random genome
+        if($theChosenOne === NULL){
+            $theChosenOne = $this->population[mt_rand(0,count($this->population)-1)];
+        }
         return $theChosenOne;
     }
 
@@ -160,7 +164,7 @@ class GeneticAlgorithm
 
         //finnished so assign new population back into class Population
         $this->population = $newPop;
-
+        $this->generation++;
         return $this->population;
     }
 
@@ -177,7 +181,7 @@ class GeneticAlgorithm
     /**
      * Updates the best, worst, average and total fitness
      */
-    protected function calculateStats()
+    public function calculateStats()
     {
         $this->totalFitness = 0;
 
@@ -242,8 +246,16 @@ class GeneticAlgorithm
     /**
      * @param Genome[] $population
      */
-    public function setPopulation($population)
+    public function setPopulation(&$population)
     {
         $this->population = $population;
+    }
+
+    /**
+     * @return int
+     */
+    public function getGeneration()
+    {
+        return $this->generation;
     }
 }
