@@ -212,7 +212,7 @@ class GeneticAlgorithm
     /**
      * resets all the relevant variables ready for a new generation
      */
-    protected function reset()
+    public function reset()
     {
         $this->totalFitness = 0;
         $this->bestFitness = 0;
