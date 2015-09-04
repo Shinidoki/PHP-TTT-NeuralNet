@@ -17,7 +17,8 @@ class Genome
         $this->fitness = $fitness;
     }
 
-    public function addWeight($weight){
+    public function addWeight($weight)
+    {
         $this->weights[] = $weight;
     }
 

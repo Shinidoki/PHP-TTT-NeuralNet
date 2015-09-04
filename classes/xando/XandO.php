@@ -27,16 +27,16 @@ class XandO
     public function drawBoard()
     {
         echo "\n";
-        for($i = 0; $i < $this->boardSize; $i++){
+        for ($i = 0; $i < $this->boardSize; $i++) {
             echo "-----";
         }
-        foreach($this->board as $row){
+        foreach ($this->board as $row) {
             echo "\n";
-            foreach($row as $field){
-                echo "| ".$field." |";
+            foreach ($row as $field) {
+                echo "| " . $field . " |";
             }
             echo "\n";
-            for($i = 0; $i < $this->boardSize; $i++){
+            for ($i = 0; $i < $this->boardSize; $i++) {
                 echo "-----";
             }
         }
@@ -45,14 +45,14 @@ class XandO
 
     public function setField($row, $column, $symbol)
     {
-		$this->currentTurn++;
-        if($this->board[$row][$column] == ' '){
+        $this->currentTurn++;
+        if ($this->board[$row][$column] == ' ') {
             $this->board[$row][$column] = $symbol;
-            if($this->checkWin($row, $column, $symbol)){
+            if ($this->checkWin($row, $column, $symbol)) {
 //                echo "Winner: ".$symbol."\n";
                 return array('winner' => $symbol);
             }
-            if($this->checkDraw()){
+            if ($this->checkDraw()) {
 //                echo "Draw!\n";
                 return array('winner' => 'draw');
             }
@@ -62,45 +62,45 @@ class XandO
     }
 
 
-
     public function letPlay($echo = false)
     {
         $gameEnd = false;
-        while($gameEnd === false){
+        while ($gameEnd === false) {
             $player = $this->players[$this->currentPlayer];
             $inputs = $this->getCurrentBoardValues();
             $output = $player->makeTurn($inputs);
 
             $turnResult = $this->setField($output[0], $output[1], $player->getSymbol());
-            if($echo){
-                echo "Player ".$player->getSymbol()." wants to set ".$output[0]." | ".$output[1]."\n";
+            //Give 1 Point for each round so he learns that lasting longer gets him nearer to a draw
+            $player->incrementFitness(4);
+
+            if ($echo) {
+                echo "Player " . $player->getSymbol() . " wants to set " . $output[0] . " | " . $output[1] . "\n";
                 $this->drawBoard();
             }
-            if(is_array($turnResult)){
+
+            if (is_array($turnResult)) {
                 $this->gameResult = $turnResult;
-                if($turnResult['winner'] != 'draw'){
+
+                if ($turnResult['winner'] != 'draw') {
                     $gameEnd = true;
                     //4 Points for winning
-//                    $player->incrementFitness(4);
-                    $player->incrementFitness(17-$player->getMovesMade());
-                    if($echo) {
+                    $player->incrementFitness(4);
+                    if ($echo) {
                         echo "Player " . $player->getSymbol() . " won!\n";
                     }
-                } else{
+                } else {
                     $gameEnd = true;
                     //2 Points for draw
-//                    $player->incrementFitness(2);
-                    $player->incrementFitness(8);
+                    $player->incrementFitness(2);
                     $this->switchPlayer();
-                    $this->players[$this->currentPlayer]->incrementFitness(8);
-//                    $this->players[$this->currentPlayer]->incrementFitness(2);
+                    $this->players[$this->currentPlayer]->incrementFitness(2);
                     $this->switchPlayer();
                     $this->gameResult = array('winner' => 'draw');
-                    if($echo){
+                    if ($echo) {
                         echo "Draw!\n";
                     }
                 }
-
             }
             $this->switchPlayer();
         }
@@ -108,9 +108,9 @@ class XandO
 
     protected function switchPlayer()
     {
-        if($this->currentPlayer > 0){
+        if ($this->currentPlayer > 0) {
             $this->currentPlayer--;
-        }else {
+        } else {
             $this->currentPlayer++;
         }
     }
@@ -119,58 +119,59 @@ class XandO
     {
         $n = $this->boardSize;
         //check col
-        for($i = 0; $i < $n; $i++){
-            if($this->board[$lastRow][$i] != $symbol){
+        for ($i = 0; $i < $n; $i++) {
+            if ($this->board[$lastRow][$i] != $symbol) {
                 break;
             }
             //check if we found n symbols in a row
-    		if($i == $n-1){
+            if ($i == $n - 1) {
                 //win!
                 return true;
             }
-    	}
+        }
 
-    	//check row
-        for($i = 0; $i < $n; $i++){
-            if($this->board[$i][$lastCol] != $symbol) {
+        //check row
+        for ($i = 0; $i < $n; $i++) {
+            if ($this->board[$i][$lastCol] != $symbol) {
                 break;
             }
-    		if($i == $n-1){
+            if ($i == $n - 1) {
                 return true;
             }
-    	}
+        }
 
-    	//check diag
-    	if($lastRow == $lastCol){
+        //check diag
+        if ($lastRow == $lastCol) {
             //we're on a diagonal
-            for($i = 0; $i < $n; $i++){
-                if($this->board[$i][$i] != $symbol)
-    				break;
-    			if($i == $n-1){
+            for ($i = 0; $i < $n; $i++) {
+                if ($this->board[$i][$i] != $symbol)
+                    break;
+                if ($i == $n - 1) {
                     return true;
                 }
-    		}
-    	}
+            }
+        }
 
-            //check anti diag
-    	for($i = 0;$i<$n;$i++){
-            if($this->board[$i][($n-1)-$i] != $symbol)
-    			break;
-            if($i == $n-1){
+        //check anti diag
+        for ($i = 0; $i < $n; $i++) {
+            if ($this->board[$i][($n - 1) - $i] != $symbol)
+                break;
+            if ($i == $n - 1) {
                 return true;
             }
-    	}
+        }
         return false;
     }
 
-    protected function checkDraw(){
+    protected function checkDraw()
+    {
         //check draw
-        if($this->currentTurn > pow(BOARD_SIZE,2)){
+        if ($this->currentTurn > pow(BOARD_SIZE, 2)) {
             return true;
         }
-        foreach($this->board as $row){
-            foreach($row as $symbol){
-                if($symbol == ' '){
+        foreach ($this->board as $row) {
+            foreach ($row as $symbol) {
+                if ($symbol == ' ') {
                     return false;
                 }
             }
@@ -180,8 +181,8 @@ class XandO
 
     protected function initializeBoard()
     {
-        for($i = 0; $i < $this->boardSize; $i++){
-            for($j = 0; $j < $this->boardSize; $j++){
+        for ($i = 0; $i < $this->boardSize; $i++) {
+            for ($j = 0; $j < $this->boardSize; $j++) {
                 $this->board[$i][$j] = ' ';
             }
         }
@@ -207,8 +208,8 @@ class XandO
     public function getCurrentBoardValues()
     {
         $result = array();
-        foreach($this->board as $row){
-            foreach($row as $symbol){
+        foreach ($this->board as $row) {
+            foreach ($row as $symbol) {
                 $result[] = $this->convertSymbol($symbol);
             }
         }
@@ -217,7 +218,7 @@ class XandO
 
     protected function convertSymbol($symbol)
     {
-        switch($symbol){
+        switch ($symbol) {
             case ' ':
                 return 0;
             case $this->players[$this->currentPlayer]->getSymbol():
@@ -238,7 +239,7 @@ class XandO
     public function testBoard($board)
     {
         $this->board = $board;
-        var_dump($this->checkWin(0,0,'O'));
+        var_dump($this->checkWin(0, 0, 'O'));
     }
 
 }

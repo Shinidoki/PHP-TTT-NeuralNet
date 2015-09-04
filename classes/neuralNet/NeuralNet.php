@@ -8,12 +8,13 @@
 require_once "NeuronLayer.php";
 
 
-class NeuralNet{
+class NeuralNet
+{
     protected $numInputs;
     protected $numOutputs;
     protected $numHiddenLayers;
     protected $neuronsPerHiddenLayer;
-    /** @var NeuronLayer[]  */
+    /** @var NeuronLayer[] */
     protected $layers = array();
 
     public function __construct($numInputs, $numOutputs, $numHiddenLayers, $neuronsPerHidden)
@@ -23,7 +24,7 @@ class NeuralNet{
         $this->numHiddenLayers = $numHiddenLayers;
         $this->neuronsPerHiddenLayer = $neuronsPerHidden;
 
-        if($numHiddenLayers > 0) {
+        if ($numHiddenLayers > 0) {
             $this->layers[] = new NeuronLayer($neuronsPerHidden, $numInputs);
 
             for ($i = 0; $i < $numHiddenLayers; $i++) {
@@ -46,9 +47,9 @@ class NeuralNet{
         /** @var Float[] $weights */
         $weights = array();
 
-        foreach($this->layers as $layer){
-            foreach($layer->getNeurons() as $neuron){
-                foreach($neuron->getWeights() as $weight){
+        foreach ($this->layers as $layer) {
+            foreach ($layer->getNeurons() as $neuron) {
+                foreach ($neuron->getWeights() as $weight) {
                     $weights[] = $weight;
                 }
             }
@@ -65,11 +66,11 @@ class NeuralNet{
     public function putWeights(&$weights)
     {
         $weightIndex = 0;
-        foreach($this->layers as $layer){
+        foreach ($this->layers as $layer) {
             $neurons = $layer->getNeurons();
-            foreach($neurons as $neuron){
+            foreach ($neurons as $neuron) {
                 $neuronWeights = $neuron->getWeights();
-                foreach($neuronWeights as $key => $weight){
+                foreach ($neuronWeights as $key => $weight) {
                     $neuron->setWeight($key, $weights[$weightIndex]);
                     $weightIndex++;
                 }
@@ -85,8 +86,8 @@ class NeuralNet{
     public function getNumberOfWeights()
     {
         $weights = 0;
-        foreach($this->layers as $layer){
-            foreach($layer->getNeurons() as $neuron){
+        foreach ($this->layers as $layer) {
+            foreach ($layer->getNeurons() as $neuron) {
                 $weights += count($neuron->getWeights());
             }
         }
@@ -102,28 +103,28 @@ class NeuralNet{
     public function update($inputs)
     {
         $outputs = array();
-        if(count($inputs) != $this->numInputs){
+        if (count($inputs) != $this->numInputs) {
             return $outputs;
         }
 
-        foreach($this->layers as $lIndex => $layer){
-            if($lIndex > 0){
+        foreach ($this->layers as $lIndex => $layer) {
+            if ($lIndex > 0) {
                 $inputs = $outputs;
             }
             $outputs = array();
 
-            foreach($layer->getNeurons() as $nIndex => $neuron){
+            foreach ($layer->getNeurons() as $nIndex => $neuron) {
                 $netInput = 0;
 
                 $numInputs = $neuron->getNumInputs();
 
-                foreach($neuron->getWeights() as $wIndex => $weight){
-                    if($wIndex < $numInputs -1){
+                foreach ($neuron->getWeights() as $wIndex => $weight) {
+                    if ($wIndex < $numInputs - 1) {
                         $netInput += $weight * $inputs[$wIndex];
                     }
                 }
 
-                $netInput += $neuron->getWeight($numInputs-1) * BIAS;
+                $netInput += $neuron->getWeight($numInputs - 1) * BIAS;
                 $outputs[] = Helper::sigmoid($netInput, ACTIVATION_RESPONSE);
 //                $outputs[] = Helper::step($netInput, 2);
             }

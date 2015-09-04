@@ -10,13 +10,13 @@ require_once "Neuron.php";
 class NeuronLayer
 {
     protected $numNeurons;
-    /** @var Neuron[]  */
+    /** @var Neuron[] */
     protected $neurons = array();
 
     public function __construct($numNeurons, $inputsPerNeuron)
     {
         $this->numNeurons = $numNeurons;
-        for($i = 0; $i < $numNeurons; $i++){
+        for ($i = 0; $i < $numNeurons; $i++) {
             $this->neurons[] = new Neuron($inputsPerNeuron);
         }
     }

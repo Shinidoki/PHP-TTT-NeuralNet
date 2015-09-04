@@ -1,15 +1,15 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: dennis.schnitzmeier
  * Date: 16.07.2015
  * Time: 12:50
  */
-
 class Neuron
 {
     protected $numInputs;
-    /** @var Float[]  */
+    /** @var Float[] */
     protected $weights = array();
 
     /**
@@ -19,7 +19,7 @@ class Neuron
     {
         $this->numInputs = $numInputs;
 
-        for($i = 0; $i < $numInputs+1; $i++){
+        for ($i = 0; $i < $numInputs + 1; $i++) {
             $this->weights[] = Helper::randomClamped();
         }
     }

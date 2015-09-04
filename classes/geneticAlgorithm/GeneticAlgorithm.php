@@ -10,7 +10,7 @@ require_once "Genome.php";
 
 class GeneticAlgorithm
 {
-    /** @var Genome[] $population  */
+    /** @var Genome[] $population */
     protected $population = array();
     protected $populationSize;
     protected $mutationRate;
@@ -29,10 +29,10 @@ class GeneticAlgorithm
         $this->mutationRate = $mutRate;
         $this->crossRate = $crossRate;
         $this->chromoLength = $numWeights;
-        for($i = 0; $i < $popSize; $i++){
+        for ($i = 0; $i < $popSize; $i++) {
             $this->population[] = new Genome(array(), 0);
 
-            for($j = 0; $j < $numWeights; $j++){
+            for ($j = 0; $j < $numWeights; $j++) {
                 $this->population[$i]->addWeight(Helper::randomClamped());
             }
         }
@@ -47,9 +47,9 @@ class GeneticAlgorithm
     {
         //Traverse the chormosome and mutate each weight dependent on the mutation rate
         $weights = $chromo->getWeights();
-        foreach($weights as $i => $weight){
+        foreach ($weights as $i => $weight) {
             //Do we perturb this weight?
-            if(Helper::randomFloat() > $this->mutationRate){
+            if (Helper::randomFloat() > $this->mutationRate) {
                 $weight += (Helper::randomClamped() * MAX_PERTURBATION);
                 $chromo->setWeight($i, $weight);
             }
@@ -71,19 +71,19 @@ class GeneticAlgorithm
 
         //Go through the chromosomes adding up the fitness so far
         $fitnessSoFar = 0.0;
-        foreach($this->population as $genome){
+        foreach ($this->population as $genome) {
             $fitnessSoFar += $genome->getFitness();
 
             //if the fitness so far > random number return the chromo at this point
-            if($fitnessSoFar >= $slice){
+            if ($fitnessSoFar >= $slice) {
                 $theChosenOne = $genome;
                 break;
             }
         }
 
         //If the Roullette failed give at least some random genome
-        if($theChosenOne === NULL){
-            $theChosenOne = $this->population[mt_rand(0,count($this->population)-1)];
+        if ($theChosenOne === NULL) {
+            $theChosenOne = $this->population[mt_rand(0, count($this->population) - 1)];
         }
         return $theChosenOne;
     }
@@ -97,27 +97,27 @@ class GeneticAlgorithm
     public function crossover(&$mum, &$dad, &$baby1, &$baby2)
     {
         //Just return parents as offspring dependent on the rate or if parents are the same
-        if(Helper::randomFloat() > $this->crossRate || $mum === $dad){
+        if (Helper::randomFloat() > $this->crossRate || $mum === $dad) {
             $baby1 = $mum;
             $baby2 = $dad;
             return;
         }
 
         //determine a crossover point
-        $crossPoint = mt_rand(0, $this->chromoLength -1);
+        $crossPoint = mt_rand(0, $this->chromoLength - 1);
 
         //create the offspring
 
         $mumWeights = $mum->getWeights();
         $dadWeights = $dad->getWeights();
-        for($i = 0; $i < $crossPoint; $i++){
-            $baby1->setWeight($i,$mumWeights[$i]);
-            $baby2->setWeight($i,$dadWeights[$i]);
+        for ($i = 0; $i < $crossPoint; $i++) {
+            $baby1->setWeight($i, $mumWeights[$i]);
+            $baby2->setWeight($i, $dadWeights[$i]);
         }
 
-        for($i = $crossPoint; $i < count($mumWeights); $i++){
-            $baby1->setWeight($i,$dadWeights[$i]);
-            $baby2->setWeight($i,$mumWeights[$i]);
+        for ($i = $crossPoint; $i < count($mumWeights); $i++) {
+            $baby1->setWeight($i, $dadWeights[$i]);
+            $baby2->setWeight($i, $mumWeights[$i]);
         }
     }
 
@@ -129,7 +129,7 @@ class GeneticAlgorithm
         $this->reset();
 
         //Sort the population (for scaling and elitism)
-        usort($oldPop,array("Genome", "sort"));
+        usort($oldPop, array("Genome", "sort"));
         //calculate best, worst, average and total fitness
         $this->calculateStats();
 
@@ -137,13 +137,13 @@ class GeneticAlgorithm
         $newPop = array();
 
         //Now to add a little elitism we shall add in some copies of the fittest genomes. Make sure we add an EVEN number or the roulette wheel sampling will crash
-        if(!(NUM_COPY_ELITES * NUM_ELITES % 2)){
+        if (!(NUM_COPY_ELITES * NUM_ELITES % 2)) {
             $this->grabNBest(NUM_ELITES, NUM_COPY_ELITES, $newPop);
         }
         //now we enter the GA loop
 
         //repeat until a new population is generated
-        while(count($newPop) < $this->populationSize){
+        while (count($newPop) < $this->populationSize) {
             //grab two genomes
             $mum = $this->getChromoRoulette();
             $dad = $this->getChromoRoulette();
@@ -171,8 +171,8 @@ class GeneticAlgorithm
     protected function grabNBest($numBest, $numCopies, &$population)
     {
         //add the required amount of copies of the n most fittest to the supplied array
-        while($numBest--){
-            for($i = 0; $i < $numCopies; $i++){
+        while ($numBest--) {
+            for ($i = 0; $i < $numCopies; $i++) {
                 $population[] = $this->population[($this->populationSize - 1) - $numBest];
             }
         }
@@ -188,17 +188,16 @@ class GeneticAlgorithm
         $currentMax = 0;
         $currentMin = PHP_INT_MAX;
 
-        foreach($this->population as $index => $genome)
-        {
+        foreach ($this->population as $index => $genome) {
             //update fittest if necessary
-            if($genome->getFitness() > $currentMax){
+            if ($genome->getFitness() > $currentMax) {
                 $currentMax = $genome->getFitness();
                 $this->fittestGenome = $index;
                 $this->bestFitness = $currentMax;
             }
 
             //update worst if necessary
-            if($genome->getFitness() < $currentMin){
+            if ($genome->getFitness() < $currentMin) {
                 $currentMin = $genome->getFitness();
                 $this->worstFitness = $currentMin;
             }

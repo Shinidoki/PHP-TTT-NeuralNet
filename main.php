@@ -9,18 +9,19 @@
 define ('BIAS', -1);
 define ('ACTIVATION_RESPONSE', 1);
 define ('MAX_PERTURBATION', 0.3);
-define ('NUM_COPY_ELITES', 1);
-define ('NUM_ELITES', 4);
-define ('GENERATIONS', 100);
-define ('MUTATION_RATE', 0.1);
+define ('NUM_COPY_ELITES', 2);
+define ('NUM_ELITES', 2);
+define ('MUTATION_RATE', 0.2);
 define ('CROSS_RATE', 0.7);
 define ('NUM_HIDDEN_LAYERS', 3);
 define ('NEURONS_PER_LAYER', 9);
 define ('BOARD_SIZE', 3);
+define ('PAIRS', 20);
 
 require_once "classes/neuralNet/NeuralNet.php";
 require_once "classes/xando/XandO.php";
 require_once "classes/xando/Player.php";
+require_once "classes/xando/Training.php";
 require_once "classes/geneticAlgorithm/GeneticAlgorithm.php";
 require_once "classes/helper/helper.php";
 
@@ -33,348 +34,49 @@ date_default_timezone_set('Europe/Berlin');
 /** @var Player[][] $players */
 $players = array();
 
-$pairs = 100;
 
-for($i = 0; $i < $pairs; $i++){
+// Generate Players-Pairs for the specified amount of pairs
+for ($i = 0; $i < PAIRS; $i++) {
     $players[] = array(
-        0 => new Player('X'),
-//        1 => new Player('O')
-        1 => new Player('O',false,false,true)
+        0 => new Player('X'), //Genetic Player
+        1 => new Player('O', false, false, true) //Perfect Algorithm Player
     );
 }
-$numWeights = $players[0][0]->getNumOfWeights();
 
-$untrainedGenes = new GeneticAlgorithm(($pairs),MUTATION_RATE,CROSS_RATE,$numWeights);
 
-echo "Generated Random Population as other Player\n";
-/** @var Genome[] $untrainedPopulation */
-$untrainedPopulation = $untrainedGenes->getChromos();
+$file = "populations/trained-population " . PAIRS . "pop " . NUM_HIDDEN_LAYERS . "x" . NEURONS_PER_LAYER . ".txt";
 
-$untrainedFile = "populations/untrained-".date('Y-m-d H-i-s')."-population ".$pairs."pop ".NUM_HIDDEN_LAYERS."x".NEURONS_PER_LAYER.".txt";
-$file = "populations/trained-population ".$pairs."pop ".NUM_HIDDEN_LAYERS."x".NEURONS_PER_LAYER.".txt";
-
-/** @var Genome[] $trainedPopulation */
-if(file_exists("populations/trained-population ".$pairs."pop ".NUM_HIDDEN_LAYERS."x".NEURONS_PER_LAYER.".txt")){
-    echo "Loaded Population from file '".$file."'\n";
+if (file_exists("populations/trained-population " . PAIRS . "pop " . NUM_HIDDEN_LAYERS . "x" . NEURONS_PER_LAYER . ".txt")) {
+    // Load "brains" for the players from file
+    echo "Loaded Population from file '" . $file . "'\n";
     $genetics = unserialize(file_get_contents($file));
-}else {
-    $genetics = new GeneticAlgorithm(($pairs),MUTATION_RATE,CROSS_RATE,$numWeights);
+} else {
+    // Create a new "brains" for our players
+    $numWeights = $players[0][0]->getNumOfWeights();
+    $genetics = new GeneticAlgorithm((PAIRS), MUTATION_RATE, CROSS_RATE, $numWeights);
     echo "Generated random Population\n";
 }
 $trainedPopulation = $genetics->getChromos();
 
+$geneticArray = array(&$genetics);
 
-$results = trainNetRandomBest($players,$trainedPopulation,$genetics,$file,$pairs,10);
-//$results = trainNet($players,$trainedPopulation,$genetics,$file,$pairs,14);
-//$results = train2Nets($players,$trainedPopulation,$untrainedPopulation,$genetics,$untrainedGenes,$file,$untrainedFile,11.5);
-//$results = trainVsBestNet($players,$genetics,$file,4);
+$traning = new Training($players, $geneticArray, array($file));
 
-
+// Let them train until the average fitness reaches the given value
+$results = $traning->trainVsAlgorithm(23);
 
 /** @var Player[] $endplayers */
 $endplayers = array(
     0 => new Player('X'),
-//    1 => new Player('O')
-    1 => new Player('O', false,false,true)
+    1 => new Player('O', false, true, true)
 );
 
 
-$endplayers[0]->putWeights($genetics->getBestGenome()->getWeights());
+$endplayers[0]->putWeights($genetics->getChromoRoulette()->getWeights());
 //$endplayers[1]->putWeights($untrainedGenes->getBestGenome()->getWeights());
 $endgame = new XandO(3, $endplayers);
 
-//
 $endgame->letPlay(true);
 $endgame->drawBoard();
 
-var_dump($results);
 
-/**
- * Trains 2 different Nets/Genetics by letting them play against each other
- *
- * @param Player[][] $players
- * @param Genome[] $trainedPopulation
- * @param Genome[] $untrainedPopulation
- * @param GeneticAlgorithm $genetics
- * @param GeneticAlgorithm $untrainedGenes
- * @param String $file
- * @param String $untrainedFile
- * @param Integer $minAvg
- * @return array
- */
-function train2Nets(&$players,&$trainedPopulation,&$untrainedPopulation,&$genetics,&$untrainedGenes,$file,$untrainedFile,$minAvg)
-{
-    $stats = array();
-
-    foreach($players as $pairId => $playerPair){
-        $playerPair[0]->putWeights($trainedPopulation[$pairId]->getWeights());
-        $playerPair[1]->putWeights($untrainedPopulation[$pairId]->getWeights());
-    }
-
-    $results = array(
-        'draw' => 0,
-        'X' => 0,
-        'O' => 0
-    );
-
-    $bestPopulationAvgTrained = $genetics->averageFitness();
-    $bestPopulationAvgUntrained = $untrainedGenes->averageFitness();
-
-    for($i = 0; $bestPopulationAvgUntrained < $minAvg && $bestPopulationAvgTrained < $minAvg; $i++){
-        foreach($players as $pairId => $playerPair){
-            $board = new XandO(BOARD_SIZE, $playerPair);
-            $board->letPlay();
-            $trainedPopulation[$pairId]->setFitness($players[$pairId][0]->getFitness());
-            $untrainedPopulation[$pairId]->setFitness($players[$pairId][1]->getFitness());
-//        $board->drawBoard();
-            $result = $board->getGameResult();
-            $results[$result['winner']]++;
-            unset($board);
-        }
-
-        $stats[$i]['trained']['averageFitness'] = $genetics->averageFitness();
-        $stats[$i]['trained']['bestFitness'] = $genetics->bestFitness();
-
-        if($stats[$i]['trained']['averageFitness'] > $bestPopulationAvgTrained){
-            saveGenes($file,$genetics,$bestPopulationAvgTrained,$stats[$i]['trained']['averageFitness']);
-        }
-        $stats[$i]['untrained']['averageFitness'] = $untrainedGenes->averageFitness();
-        $stats[$i]['untrained']['bestFitness'] = $untrainedGenes->bestFitness();
-
-        if($stats[$i]['untrained']['averageFitness'] > $bestPopulationAvgUntrained){
-            saveGenes($untrainedFile,$untrainedGenes,$bestPopulationAvgUntrained,$stats[$i]['untrained']['averageFitness']);
-        }
-
-        $trainedPopulation = $genetics->epoch($trainedPopulation);
-        $untrainedPopulation = $untrainedGenes->epoch($untrainedPopulation);
-        shuffle($trainedPopulation);
-        shuffle($untrainedPopulation);
-        foreach($players as $pairId => $playerPair) {
-            $playerPair[0]->putWeights($trainedPopulation[$pairId]->getWeights());
-            $playerPair[0]->reset();
-            $playerPair[1]->putWeights($untrainedPopulation[$pairId]->getWeights());
-            $playerPair[1]->reset();
-        }
-        echo "||Trained|| Generation: ".$genetics->getGeneration().". Best: ".$stats[$i]['trained']['bestFitness']." Average: ".$stats[$i]['trained']['averageFitness']."\n";
-        echo "||Untrained|| Generation: ".$untrainedGenes->getGeneration().". Best: ".$stats[$i]['untrained']['bestFitness']." Average: ".$stats[$i]['untrained']['averageFitness']."\n";
-    }
-    return $results;
-}
-
-
-
-/**
- * Trains a single net by letting it play against its own population randomly
- *
- * @param Player[][] $players
- * @param Genome[] $population
- * @param GeneticAlgorithm $genetics
- * @param String $file
- * @param Integer $pairs
- * @param Integer $minAvg
- * @return array
- */
-function trainNet(&$players,&$population,&$genetics,$file,$pairs, $minAvg)
-{
-    $stats = array();
-
-    foreach($players as $pairId => $playerPair){
-        $playerPair[0]->putWeights($population[$pairId]->getWeights());
-        $playerPair[1]->putWeights($population[$pairId%$pairs]->getWeights());
-    }
-
-    $results = array(
-        'draw' => 0,
-        'X' => 0,
-        'O' => 0
-    );
-
-    $bestPopulationAvg = $genetics->averageFitness();
-
-    for($i = 0; $bestPopulationAvg < $minAvg; $i++){
-        foreach($players as $pairId => $playerPair){
-            $board = new XandO(BOARD_SIZE, $playerPair);
-            $board->letPlay();
-            $population[$pairId]->setFitness($players[$pairId][0]->getFitness());
-            $population[$pairId%$pairs]->setFitness($players[$pairId][1]->getFitness());
-//        $board->drawBoard();
-            $result = $board->getGameResult();
-            $results[$result['winner']]++;
-            unset($board);
-        }
-
-        $stats[$i]['trained']['averageFitness'] = $genetics->averageFitness();
-        $stats[$i]['trained']['bestFitness'] = $genetics->bestFitness();
-
-        if($stats[$i]['trained']['averageFitness'] > $bestPopulationAvg){
-            saveGenes($file,$genetics,$bestPopulationAvg,$stats[$i]['trained']['averageFitness']);
-        }
-
-        $population = $genetics->epoch($population);
-        shuffle($population);
-        foreach($players as $pairId => $playerPair) {
-            $playerPair[0]->putWeights($population[$pairId]->getWeights());
-            $playerPair[0]->reset();
-            $playerPair[1]->putWeights($population[$pairId%$pairs]->getWeights());
-            $playerPair[1]->reset();
-        }
-        echo "Generation: ".$genetics->getGeneration().". Best: ".$stats[$i]['trained']['bestFitness']." Average: ".$stats[$i]['trained']['averageFitness']."\n";
-    }
-    return $results;
-}
-
-/**
- * Trains a single net by playing against a random or perfect algorithm
- *
- * @param Player[][] $players
- * @param Genome[] $population
- * @param GeneticAlgorithm $genetics
- * @param String $file
- * @param Integer $pairs
- * @param Integer $minAvg
- * @return array
- */
-function trainNetRandomBest(&$players,&$population,&$genetics,$file,$minAvg)
-{
-    $stats = array();
-
-    foreach($players as $pairId => $playerPair){
-        $playerPair[0]->putWeights($population[$pairId]->getWeights());
-    }
-
-    $results = array(
-        'draw' => 0,
-        'X' => 0,
-        'O' => 0
-    );
-
-    $bestPopulationAvg = $genetics->averageFitness();
-
-    for($i = 0; $bestPopulationAvg < $minAvg; $i++){
-        foreach($players as $pairId => $playerPair){
-            $board = new XandO(BOARD_SIZE, $playerPair);
-            $board->letPlay();
-            $population[$pairId]->setFitness($players[$pairId][0]->getFitness());
-            $result = $board->getGameResult();
-            $results[$result['winner']]++;
-            unset($board);
-        }
-
-        $stats[$i]['trained']['averageFitness'] = $genetics->averageFitness();
-        $stats[$i]['trained']['bestFitness'] = $genetics->bestFitness();
-
-        if($stats[$i]['trained']['averageFitness'] > $bestPopulationAvg){
-            saveGenes($file,$genetics,$bestPopulationAvg,$stats[$i]['trained']['averageFitness']);
-        }
-
-        $population = $genetics->epoch($population);
-        foreach($players as $pairId => $playerPair) {
-            $playerPair[0]->putWeights($population[$pairId]->getWeights());
-            $playerPair[0]->reset();
-            $playerPair[1]->reset();
-        }
-        echo "Generation: ".$genetics->getGeneration().". Best: ".$stats[$i]['trained']['bestFitness']." Average: ".$stats[$i]['trained']['averageFitness']."\n";
-    }
-    return $results;
-}
-
-/**
- * Trains a single net by letting it play against its own population randomly
- *
- * @param Player[][] $players
- * @param Genome[] $population
- * @param GeneticAlgorithm $genetics
- * @param String $file
- * @param Integer $pairs
- * @param Integer $minAvg
- * @return array
- */
-function trainVsBestNet(&$players,&$genetics,$file, $minAvg)
-{
-    $stats = array();
-
-    $trainingGenes = clone($genetics);
-
-    $bestPopulationAvg = $genetics->averageFitness();
-    $lastUntrainedFit = 0;
-    $lastTrainedFit = 0;
-
-    $bestPop = $genetics->getChromos();
-    $newPop = $trainingGenes->getChromos();
-
-    foreach($players as $pairId => $playerPair){
-        $playerPair[0]->putWeights($bestPop[$pairId]->getWeights());
-        $playerPair[1]->putWeights($newPop[$pairId]->getWeights());
-    }
-
-    $results = array(
-        'draw' => 0,
-        'X' => 0,
-        'O' => 0
-    );
-
-
-
-    for($i = 0; $bestPopulationAvg < $minAvg; $i++){
-        foreach($players as $pairId => $playerPair){
-            $board = new XandO(BOARD_SIZE, $playerPair);
-            $board->letPlay();
-            if($trainingGenes->getGeneration()%2 == 1){
-                $bestPop[$pairId]->setFitness($players[$pairId][0]->getFitness());
-                $newPop[$pairId]->setFitness($players[$pairId][1]->getFitness());
-            }else{
-                $bestPop[$pairId]->setFitness($players[$pairId][1]->getFitness());
-                $newPop[$pairId]->setFitness($players[$pairId][0]->getFitness());
-            }
-
-//        $board->drawBoard();
-            $result = $board->getGameResult();
-            $results[$result['winner']]++;
-            unset($board);
-        }
-        $genetics->calculateStats();
-        $stats[$i]['trained']['averageFitness'] = $genetics->averageFitness();
-        $stats[$i]['trained']['bestFitness'] = $genetics->bestFitness();
-        $stats[$i]['untrained']['averageFitness'] = $trainingGenes->averageFitness();
-        $stats[$i]['untrained']['bestFitness'] = $trainingGenes->bestFitness();
-
-        $lastUntrainedFit = ($stats[$i]['untrained']['averageFitness']+$lastUntrainedFit)/2;
-        $lastTrainedFit = ($stats[$i]['trained']['averageFitness']+$lastTrainedFit)/2;
-
-        if(($lastUntrainedFit-$lastTrainedFit) > 4){
-            echo "Training Genes became better!\n";
-            $genetics = clone($trainingGenes);
-            saveGenes($file,$trainingGenes,$bestPopulationAvg,$stats[$i]['untrained']['averageFitness']);
-            $bestPopulationAvg = $lastUntrainedFit;
-        }
-
-        $newPop = $trainingGenes->epoch($newPop);
-        shuffle($newPop);
-        $genetics->reset();
-        $bestPop = $genetics->getChromos();
-        foreach($players as $pairId => $playerPair) {
-            if($trainingGenes->getGeneration()%2 == 1){
-                $playerPair[0]->putWeights($bestPop[$pairId]->getWeights());
-                $playerPair[0]->reset();
-                $playerPair[1]->putWeights($newPop[$pairId]->getWeights());
-                $playerPair[1]->reset();
-            } else {
-                $playerPair[1]->putWeights($bestPop[$pairId]->getWeights());
-                $playerPair[1]->reset();
-                $playerPair[0]->putWeights($newPop[$pairId]->getWeights());
-                $playerPair[0]->reset();
-            }
-
-        }
-        echo "||Trained|| Generation: ".$genetics->getGeneration().". Best: ".$stats[$i]['trained']['bestFitness']." Average: ".$lastTrainedFit."\n";
-        echo "||Untrained|| Generation: ".$trainingGenes->getGeneration().". Best: ".$stats[$i]['untrained']['bestFitness']." Average: ".$lastUntrainedFit."\n";
-    }
-    return $results;
-}
-
-function saveGenes($file,$genetics,&$bestPopulationAvg,$fitness)
-{
-    file_put_contents($file, serialize($genetics));
-    $bestPopulationAvg = $fitness;
-    echo "New Best Average!\n";
-}

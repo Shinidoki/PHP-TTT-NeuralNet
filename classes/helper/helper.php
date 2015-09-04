@@ -15,9 +15,9 @@ class helper
      */
     static public function randomClamped()
     {
-        $number = (float)mt_rand()/(float)mt_getrandmax();
-        $negative = mt_rand(0,1);
-        if($negative == 1){
+        $number = (float)mt_rand() / (float)mt_getrandmax();
+        $negative = mt_rand(0, 1);
+        if ($negative == 1) {
             $number = $number * -1;
         }
         return $number;
@@ -30,7 +30,7 @@ class helper
      */
     static public function randomFloat()
     {
-        return (float)mt_rand()/(float)mt_getrandmax();
+        return (float)mt_rand() / (float)mt_getrandmax();
     }
 
     /**
@@ -42,17 +42,17 @@ class helper
      */
     static public function sigmoid($netInput, $response)
     {
-        return ( 1 / ( 1 + exp(-$netInput / $response)));
+        return (1 / (1 + exp(-$netInput / $response)));
     }
 
     static public function step($netInput, $maxValue)
     {
         $inputVal = self::sigmoid($netInput, ACTIVATION_RESPONSE);
-        $stepSize = 1/($maxValue+1);
+        $stepSize = 1 / ($maxValue + 1);
         $step = 0;
-        for($i = 0; $i <= $maxValue; $i++){
+        for ($i = 0; $i <= $maxValue; $i++) {
             $step += $stepSize;
-            if($step >= $inputVal){
+            if ($step >= $inputVal) {
                 return $i;
             }
         }
